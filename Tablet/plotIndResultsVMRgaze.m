@@ -39,8 +39,6 @@ if isfield(ExpDetails(1),'breakTrials')
 else
     breakTrials = [];
 end
-iBin = Results.trialNo_bins(:,end)+3;
-rotBins = false(length(iBin),nDays);
 % sampling
 fs = ExpDetails(1).setup.fs;
 tsample = 1000/fs;
@@ -56,7 +54,6 @@ for d = 1 : nDays
     % number of trials
     n = length(ExpDetails(d).trialNo);
     % rotation
-    rotBins(:,d) = cursorRotation(iBin,d)~=0;
     dRot = find(diff([0;rotationOn(:,d);0]));
     iRotationOnOff(1:length(dRot),d) = dRot-0.5;
     % blocks
@@ -102,7 +99,7 @@ if plotGaze
     end
     fig3a = scaledFigure(2,0.8*nDays);              % probability of fixation per block
     fig3b = scaledFigure(2/3*nSubblocks,0.8*nDays); % probability of fixation per rotation subblock
-    fig3a = scaledFigure(1,0.8*nDays);              % histogram of fixation angles for sequential fixations
+    fig4 = scaledFigure(1,0.8*nDays);               % histogram of fixation angles for sequential fixations
 end
 colors = get(gca,'colororder');
 fadedColors = colors+(1-colors)*0.6;
@@ -117,7 +114,7 @@ if plotReport
         Results.explicitAngle_outliersRemoved = Results.explicitAngle;
     end
     dataToPlot = [dataToPlot {Results.explicitAngle_outliersRemoved}];
-    figTitles = [figTitles {'Explicit learning'}];
+    figTitles = [figTitles {'Re-aiming'}];
     yLabels = [yLabels {'Reported aim angle (deg)'}];
 end
 if plotGaze
