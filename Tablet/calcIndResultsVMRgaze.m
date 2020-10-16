@@ -142,7 +142,7 @@ for s = 1 : nSubj
             Exp.breakTrials = breakTrials(:,d);
             ExpDetails(d) = Exp;
             Data(d) = D;
-            nTrials = length(Exp.trialNo); n = nTrials;
+            nTrials_day = length(Exp.trialNo); n = nTrials_day;
             nBlocks = max(Exp.blockNo);
             
             % general info
@@ -174,7 +174,9 @@ for s = 1 : nSubj
             disp(str)
             str = sprintf('%d late trials (online)',sum(strcmp(D.feedbackMessage,'Late')));
             disp(str)
-            str = sprintf('%d trials with MT > %1.1f s ',sum(MT_temp>maxMT | strcmp(D.feedbackMessage,'Short')),maxMT);
+            str = sprintf('%d trials with movement short of target (online) ', sum(strcmp(D.feedbackMessage,'Short')));
+            disp(str)
+            str = sprintf('%d trials with MT > %1.1f s ',sum(MT_temp>maxMT),maxMT);
             disp(str)
             str = sprintf('%d non-reporting trials with good timing',sum(noReport(1:n,d)&feedbackAndMTGood(1:n,d)));
             disp(str)
@@ -197,7 +199,7 @@ for s = 1 : nSubj
                 elseif visuomotorRotation<0
                     aimZone = [targetZone(2) -vmr*2];
                 end
-                iRows = (1:nTrials)';
+                iRows = (1:n)';
                 for st = 1 : length(states)
                     fixAngles_temp.(states{st}).closestT = NaN(nTrials,1);
                     fixAngles_temp.(states{st}).closestA = NaN(nTrials,1);
@@ -281,7 +283,7 @@ for s = 1 : nSubj
                     len_resampled = sum(nsNew);
                     dirGaze_resampled = NaN(len_resampled,nTrials);
                     distGaze_resampled = NaN(len_resampled,nTrials);
-                    for t = 1 : nTrials
+                    for t = 1 : nTrials_day
                         if D_new.analyzedGazeData(t)
                             nsOld = D_new.iTargetGoLeaveRingEnd(t,:);
                             dirGaze_resampled(:,t) = resampleGazeIntervals(D_new.dirGaze_meanFix{t},nsOld,nsNew);
@@ -346,11 +348,11 @@ for s = 1 : nSubj
             explicitAngle_outliersRemoved(:,d) = explicitAngle(:,d);
             explicitAngle_outliersRemoved(explicitAngle(:,d)<-90 | explicitAngle(:,d)>45,d) = NaN; % remove outliers
             if ~all(noGazeData)
-                fixAngle_preview_closestA(1:n,d) = fixAngles.(days{d}).preview.closestA;
-                fixAngle_preview_closestOppA(1:n,d) = fixAngles.(days{d}).preview.closestOppA;
+                fixAngle_preview_closestA(:,d) = fixAngles.(days{d}).preview.closestA;
+                fixAngle_preview_closestOppA(:,d) = fixAngles.(days{d}).preview.closestOppA;
             else
-                fixAngle_preview_closestA(1:n,d) = NaN;
-                fixAngle_preview_closestOppA(1:n,d) = NaN;
+                fixAngle_preview_closestA(:,d) = NaN;
+                fixAngle_preview_closestOppA(:,d) = NaN;
             end
             
             fprintf('\n')
@@ -367,6 +369,7 @@ for s = 1 : nSubj
         Results.blockNo = blockNumber;
         Results.trialNo = [trialNumber (1:length(trialNumber))'];
         Results.trialType = cell(nTrials,nDays);
+        Results.trialType(:) = {''};
         Results.trialType(~isnan(trialNumber) & noReport) = {'noReport'};
         Results.trialType(~isnan(trialNumber) & ~noReport) = {'report'};
         Results.cursorRotation = cursorRotation;

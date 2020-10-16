@@ -42,7 +42,7 @@ saveToPath = [projectPath '/3_Results/'];
 cd(dataPath)
 
 % select subject data files
-subjFiles = selectFiles('S*.mat');
+subjFiles = selectFiles('*.mat');
 if isempty(subjFiles)
     subjFiles = selectFiles('*.mat');
 end
