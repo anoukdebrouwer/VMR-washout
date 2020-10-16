@@ -411,14 +411,22 @@ for s = 1 : nSubj
             ['For analysis of reported values: '];...
             ['Classified as outlier if <-90 or >45 deg']};
         
-        % check if file exists
+        % make sure file name is correct
         if nDays>1
-            fileName_ = [Exp.subjName '.mat'];
             fileName = [Exp.subjFolder(1:end-5) '.mat'];
-            if ~strcmp(fileName_,fileName) % temp
-                disp('Check filename'); keyboard
+            fileName_ = [Exp.subjName '.mat'];
+            if ~strcmp(fileName,fileName_)
+                names = {fileName fileName_};
+                iCorrect = [];
+                while isempty(iCorrect)
+                    q = sprintf('Save file as %s(1) or %s(2)? ',fileName,fileName_);
+                    iCorrect = input(q);
+                end
+                fileName = names{iCorrect};
             end
         end
+        
+        % check if file exists
         if exist([saveToPath fileName],'file') == 2 % check if file does not exist yet
             disp(['A file named ' fileName ' already exists.'])
             overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
@@ -431,7 +439,7 @@ for s = 1 : nSubj
             save([saveToPath fileName],'ExpDetails','Data','Results');
             disp(['Saved ' saveToPath fileName])
         else
-            disp('Results not been saved')
+            disp('Results were not saved')
         end
         
         
