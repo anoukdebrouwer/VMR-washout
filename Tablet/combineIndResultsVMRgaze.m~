@@ -80,6 +80,8 @@ percReportStrategy      = NaN(nBins,nSubj,nDays);
 percReportStrategy_opp  = NaN(nBins,nSubj,nDays);
 percFixStrategy         = NaN(nBins,nSubj,nDays);
 percFixStrategy_opp     = NaN(nBins,nSubj,nDays);
+%firstAimReportBin       = NaN(nSubj,1);
+%firstAimFixBin          = NaN(nSubj,1);
 
 %% Loop over subjects
 
@@ -170,6 +172,8 @@ for s = 1 : nSubj
     end
     iBin = iBin(1:end-1); % remove right edge of last bin
     
+    % create separate aim fixation variables for rotation and washout?
+    
     %% Check removed outliers in reported aiming angles
     
     keepOutliers = false;
@@ -209,6 +213,36 @@ for s = 1 : nSubj
     
     implicitAngle(:,s,:) = handAngle(:,s,:)-reportAngle(:,s,:);
     implicitAngle_fromFix(:,s,:) = handAngle(:,s,:)-aimFixAngle(:,s,:);
+    
+    %     %% Trials and bins in which an aiming strategy was present
+    %
+    %     % percentage of trials in which an aiming strategy was present
+    %     reportTrial = ismember(Results.trialType,'report');
+    %     for d = 1 : nDays
+    %         for b = 1 : nBlocks
+    %             % report trials
+    %             currBlock_report = Results.blockNo(:,d)==b & reportTrial(:,d) & Results.feedbackAndMTgood(:,d);
+    %             if any(currBlock_report)
+    %                 reportStrategy = Results.explicitAngle(currBlock_report,d)<targetZone(1);
+    %                 percReportStrategy(b,s,d) = sum(reportStrategy)/sum(currBlock_report)*100;
+    %                 reportStrategy_opp = Results.explicitAngle(currBlock_report,d)>targetZone(2);
+    %                 percReportStrategy_opp(b,s,d) = sum(reportStrategy_opp)/sum(currBlock_report)*100;
+    %             end
+    %             % no-report trials, look at fixation angles
+    %             currBlock_fix = Results.blockNo(:,d)==b & ~reportTrial(:,d) & Results.feedbackAndMTgood(:,d);
+    %             if any(currBlock_fix)
+    %                 fixationStrategy = Results.fixAngle_closestA(currBlock_fix,d)<targetZone(1);
+    %                 percFixStrategy(b,s,d) = sum(fixationStrategy)/sum(currBlock_fix)*100;
+    %                 fixationStrategy_opp = Results.fixAngle_closestOppA(currBlock_fix,d)>targetZone(2);
+    %                 percFixStrategy_opp(b,s,d) = sum(fixationStrategy_opp)/sum(currBlock_fix)*100;
+    %             end
+    %         end
+    %     end
+    %
+    %     % first rotation bin in which an aiming strategy was present
+    %     firstRotBin = find(rotBins,1);
+    %     firstAimFixBin(s) = nanmax([find(aimFixAngle(firstRotBin:end,s,1)<targetZone(1),1) NaN]);
+    %     firstAimReportBin(s) = nanmax([find(reportAngle(firstRotBin:end,s,1)<targetZone(1),1) NaN]);
     
     %% Plots
     
@@ -357,6 +391,197 @@ for s = 1 : nSubj
     
 end % end of loop over subjects
 
+%% Plots
+
+percReport_rot = squeeze(percReportStrategy(rotBlock,:,:));
+percFix_rot = squeeze(percFixStrategy(rotBlock,:,:));
+percReport_wo = squeeze(percReportStrategy_opp(woBlock,:,:));
+percFix_wo = squeeze(percFixStrategy_opp(woBlock,:,:));
+
+for d = 1 : nDays
+    maxPercStrategy_rot(:,d) = max([percReport_rot(:,d) percFix_rot(:,d)],[],2);
+    maxPercStrategy_wo(:,d) = max([percReport_wo(:,d) percFix_wo(:,d)],[],2);
+end
+
+% TRY: plot max percentage strategy - bar
+scaledFigure(nSubj/10,1);
+b = bar([maxPercStrategy_rot maxPercStrategy_wo]);
+legend({'rot 1','rot 2','wo 1','wo 2'},'location','eastoutside')
+axis([0 nSubj+1 0 100])
+set(gca,'xtick',1:nSubj)
+set(gca,'xticklabel',subj)
+ylabel('max % of trials')
+title([expName ' - Maximum percentage of trials with reported or fixation strategy'],'interpreter','none')
+figName = [expName '_strategyMaxPercTrials_bar'];
+if exist([saveToPath figName],'file') == 2 % check if file does not exist yet
+    disp(['A figure named ' figName ' already exists.'])
+    overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
+else
+    overwrite = 1;
+end
+if overwrite == 1
+    saveFigAsPDF([saveToPath figName],12)
+end
+
+% TRY: plot max percentage strategy - scatter
+if nDays==2
+    figure
+    scatter(maxPercStrategy_rot(:,1),maxPercStrategy_rot(:,2),'filled');
+    axis([0 105 0 105]); axis square
+    % label data points if there is space
+    for s = 1 : nSubj
+        t = text(maxPercStrategy_rot(s,1),maxPercStrategy_rot(s,2),subj{s});
+        textExtent = t.Extent(3:4);
+        s_tf = false(nSubj,1); s_tf(s) = true;
+        dx = maxPercStrategy_rot(s_tf,1)-maxPercStrategy_rot(~s_tf,1);
+        dy = maxPercStrategy_rot(s_tf,2)-maxPercStrategy_rot(~s_tf,2);
+        % check for space west of datapoint
+        if any(dx>(-2*textExtent(1)) & dx<=0 & abs(dy)<textExtent(2))
+            delete(t)
+            if ~any(abs(dx)<textExtent(1) & dy>=0 & dy<(2*textExtent(2))) % south
+                t = text(maxPercStrategy_rot(s,1),maxPercStrategy_rot(s,2),subj{s},...
+                    'HorizontalAlignment','Center','VerticalAlignment','Top');
+            elseif ~any(dx>=0 & dx<(2*textExtent(1)) & abs(dy)<textExtent(2)) % east
+                t = text(maxPercStrategy_rot(s,1),maxPercStrategy_rot(s,2),subj{s},...
+                    'HorizontalAlignment','Right','VerticalAlignment','Middle');
+            elseif ~any(abs(dx)<textExtent(1) & dy>(-2*textExtent(2)) & dy<=0) % north
+                t = text(maxPercStrategy_rot(s,1),maxPercStrategy_rot(s,2),subj{s},...
+                    'HorizontalAlignment','Center','VerticalAlignment','Bottom');
+            end
+        end
+    end
+    xlabel('rotation 1')
+    ylabel('rotation 2')
+    title([expName ' - Maximum percentage of trials with reported or fixation strategy'],'interpreter','none')
+    figName = [expName '_strategyMaxPercTrials_scatter'];
+    if exist([saveToPath figName],'file') == 2 % check if file does not exist yet
+        disp(['A figure named ' figName ' already exists.'])
+        overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
+    else
+        overwrite = 1;
+    end
+    if overwrite == 1
+        saveFigAsPDF([saveToPath figName],12)
+    end
+end
+
+% TRY: plot percentage report and fixation strategy - line plot
+x = 1:nSubj;
+scaledFigure(nSubj/10,1); hold on
+% report
+plot(x-0.15,percReport_rot(:,1),'o','color',colors(4,:),'markerfacecolor',colors(4,:));
+plot(x-0.05,percReport_rot(:,2),'o','color',colors(4,:));
+plot(x+0.05,percReport_wo(:,1),'^','color',colors(4,:),'markerfacecolor',colors(4,:));
+plot(x+0.15,percReport_wo(:,2),'^','color',colors(4,:));
+% fixation
+plot(x-0.15,percFix_rot(:,1),'o','color',colors(8,:),'markerfacecolor',colors(8,:));
+plot(x+0.05,percFix_rot(:,2),'o','color',colors(8,:));
+plot(x-0.05,percFix_wo(:,1),'^','color',colors(8,:),'markerfacecolor',colors(8,:));
+plot(x+0.15,percFix_wo(:,2),'^','color',colors(8,:));
+% axes, legend and title
+axis([0 nSubj+1 0 101])
+set(gca,'xtick',x)
+set(gca,'xticklabel',subj)
+legend({'Report rot 1','Report rot 2','Report wo 1','Report wo 2',...
+    'Fix rot 1','Fix rot 2','Fix wo 1','Fix wo 2'},'location','eastoutside')
+ylabel('% trials')
+title([expName ' - % of trials with reported and fixation strategy'],'interpreter','none')
+%
+figName = [expName '_strategyPercTrials_line'];
+if exist([saveToPath figName],'file') == 2 % check if file does not exist yet
+    disp(['A figure named ' figName ' already exists.'])
+    overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
+else
+    overwrite = 1;
+end
+if overwrite == 1
+    saveFigAsPDF([saveToPath figName],12)
+end
+
+% TRY: plot percentage report and fixation strategy - scatter
+scaledFigure(2,1);
+for s = 1 : nSubj
+    % rotation block
+    subplot(1,2,1); hold on
+    percReport = squeeze(percReportStrategy(rotBlock,s,1:2));
+    percFix = squeeze(percFixStrategy(rotBlock,s,1:2));
+    plot(percReport(1),percFix(1),'o','color',matlabcolors(1,:))
+    if nDays==2
+        plot(percReport(2),percFix(2),'o','color',matlabcolors(2,:))
+        plot(percReport,percFix,'color',[0.5 0.5 0.5])
+    end
+    if s==1
+        axis([0 100 0 100]); axis square
+        legend({'day 1','day 2'},'location','best')
+        xlabel('% report trials with reported strategy')
+        ylabel('% no-report trials with fixation strategy')
+        title('Rotation block')
+    end
+    % washout block - opposite strategy
+    subplot(1,2,2); hold on
+    percReport = squeeze(percReportStrategy_opp(woBlock,s,1:2));
+    percFix = squeeze(percFixStrategy_opp(woBlock,s,1:2));
+    plot(percReport(1),percFix(1),'o','color',matlabcolors(1,:))
+    if nDays==2 && any(Results.blockNo(:,2)==woBlock) % day 2 washout
+        plot(percReport(2),percFix(2),'o','color',matlabcolors(2,:))
+        plot(percReport,percFix,'color',[0.5 0.5 0.5])
+    end
+    if s==1
+        axis([0 100 0 100]); axis square
+        xlabel('% report trials with reported strategy')
+        ylabel('% no-report trials with fixation strategy')
+        title('Washout block - opposite strategy')
+    end
+end
+suplabel([expName ' - % of trials with reported and fixation strategy'],'t');
+%
+figName = [expName '_strategyPercTrials_scatter'];
+if exist([saveToPath figName],'file') == 2 % check if file does not exist yet
+    disp(['A figure named ' figName ' already exists.'])
+    overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
+else
+    overwrite = 1;
+end
+if overwrite == 1
+    saveFigAsPDF([saveToPath figName],12)
+end
+
+% TRY: plot percentage report and fixation strategy - bar
+scaledFigure(nSubj/15,2); hold on
+% rotation block
+for d = 1 : nDays
+    subplot(4,1,d)
+    b = bar([percReport_rot(:,d) percFix_rot(:,d)]);
+    b(1).FaceColor = colors(3,:);
+    b(2).FaceColor = colors(7,:);
+    axis([0 nSubj+1 0 100])
+    set(gca,'xtick',1:nSubj); set(gca,'xticklabel',subj)
+    title(['% of rotation trials with strategy - day ' num2str(d)])
+    % washout block - opposite strategy
+    subplot(4,1,d+2)
+    b = bar([percReport_wo(:,d) percFix_wo(:,d)]);
+    b(1).FaceColor = colors(3,:);
+    b(2).FaceColor = colors(7,:);
+    axis([0 nSubj+1 0 100])
+    set(gca,'xtick',1:nSubj); set(gca,'xticklabel',subj)
+    title(['% of washout trials with opposite strategy - day ' num2str(d)])
+    if d==1
+        legend({'Report','Fixation'},'location','best')
+    end
+end
+suplabel([expName ' - % of trials with reported and fixation strategy'],'t');
+%
+figName = [expName '_strategyPercTrials_bar'];
+if exist([saveToPath figName],'file') == 2 % check if file does not exist yet
+    disp(['A figure named ' figName ' already exists.'])
+    overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
+else
+    overwrite = 1;
+end
+if overwrite == 1
+    saveFigAsPDF([saveToPath figName],12)
+end
+
 %% Save data file
 
 fileName = ['Results_' expName '_' datestr(now,'yyyymmdd') '.mat'];
@@ -426,7 +651,7 @@ for i = 1 : 4
                 plot(iMidBin,mAimFixAngle,'.-','color',colors(8,:),'linewidth',2);
                 nAimFixators = sum(~isnan(aimFixAngle(:,:,d)),2);
                 str = ['max n = ' num2str(max(nAimFixators))];
-                text(iMidBin(find(rotBins,1)),0.5*vmr,str)
+                text(iMidBin(firstRotBin),0.5*vmr,str)
             end
             figTitle = 'Aimpoint fixation angle';
         elseif i==4
@@ -467,15 +692,13 @@ figTitle = [expName ' - group results (n=' num2str(nSubj) ')'];
 suplabel(figTitle,'t');
 
 % save figure
-if savePlots
-    figName = [expName '_binnedAngles'];
-    if exist([saveToPath figName],'file') == 2 % check if file does not exist yet
-        disp(['A figure named ' figName ' already exists.'])
-        overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
-    else
-        overwrite = 1;
-    end
-    if overwrite == 1
-        saveFigAsPDF(figName,12)
-    end
+figName = [expName '_binnedAngles'];
+if exist([saveToPath figName],'file') == 2 % check if file does not exist yet
+    disp(['A figure named ' figName ' already exists.'])
+    overwrite = input('Do you want to overwrite it? Yes(1) or no(0): ');
+else
+    overwrite = 1;
+end
+if overwrite == 1
+    saveFigAsPDF(figName,12)
 end
