@@ -94,12 +94,19 @@ for s = 1 : nSubj
     % define bins
     iBin = (1 : nTargets : nTrials)';
     blockNo = Results.blockNo(iBin);
-    blockName = blockNames(blockNo);
+    blockNames_split = repmat({'x'},nBlocks,2);
+    for b = 1 : nBlocks
+        str = strsplit(blockNames{b},'+');
+        blockNames_split(b,1:length(str)) = lower(str);
+    end
+    blockName = blockNames_split(blockNo,1);
     cursorRotation = Results.cursorRotation(iBin,1);
-    rotBins = cellfun(@(x) ~isempty(x),strfind(lower(blockName),'rotation'));
+    rotBins = cellfun(@(x) ~isempty(x),strfind(blockName,'rotation'));
     rotBlock = unique(blockNo(rotBins));
-    woBins = cellfun(@(x) ~isempty(x),strfind(lower(blockName),'washout'));
+    woBins = cellfun(@(x) ~isempty(x),strfind(blockName,'washout'));
     woBlock = unique(blockNo(woBins));
+    report = blockNames_split(blockNo,2);
+    reportBins = cellfun(@(x) ~isempty(x),strfind(report,'report'));
     
     % valid trials and trial type
     goodTrial = Results.feedbackAndMTgood;
@@ -371,9 +378,11 @@ end
 
 % save file
 if overwrite == 1
-    save([saveToPath fileName],'subj','blockName','iBin','nTrials',...
-        'cursorRotation','meanOrMedian','RT','handAngle','aimFixAngle',...
-        'reportAngle','implicitAngle','implicitAngle_fromFix',...
+    report = reportBins;
+    save([saveToPath fileName],'subj','nTrials','meanOrMedian',...
+        'blockName','report','iBin','cursorRotation',...
+        'RT','handAngle','aimFixAngle','reportAngle',...
+        'implicitAngle','implicitAngle_fromFix',...
         'percReportStrategy','percReportStrategy_opp',...
         'percFixStrategy','percFixStrategy_opp');
     disp(['Saved ' saveToPath fileName])
