@@ -76,11 +76,14 @@ for f = 1 : nFiles
         implicit_angle_from_fix = reshape(implicitAngle_fromFix(:,s,1:2),[],1);
         perc_report_strategy = reshape(percReportStrategy(:,s,1:2),[],1);
         perc_fix_strategy = reshape(percFixStrategy(:,s,1:2),[],1);
+        perc_opp_report_strategy = reshape(percReportStrategy_opp(:,s,1:2),[],1);
+        perc_opp_fix_strategy = reshape(percFixStrategy_opp(:,s,1:2),[],1);
         % create table
         T_subj = table(exp,day,block_name,bin_no,subj,...
             hand_angle,report_angle,aimfix_angle,...
             implicit_angle,implicit_angle_from_fix,...
-            perc_report_strategy,perc_fix_strategy);
+            perc_report_strategy,perc_fix_strategy,...
+            perc_opp_report_strategy,perc_opp_fix_strategy);
         T = [T; T_subj];
     end
     
